@@ -1,0 +1,354 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  CINEMA_MANAGER
+  CHECKIN_AGENT
+}
+
+enum MovieStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ShowtimeStatus {
+  DRAFT
+  ON_SALE
+  CANCELLED
+  COMPLETED
+}
+
+enum SeatAvailability {
+  AVAILABLE
+  HELD
+  SOLD
+  BLOCKED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  MINT_PENDING
+  COMPLETED
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+enum TicketStatus {
+  HELD
+  PAYMENT_PENDING
+  PAID
+  MINT_PENDING
+  MINTED
+  CHECKED_IN
+  FAILED
+  EXPIRED
+  REFUNDED
+  INVALIDATED
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+}
+
+enum TransactionType {
+  MINT
+  CHECK_IN
+  INVALIDATE
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String?    @unique
+  displayName  String?
+  role         UserRole   @default(CUSTOMER)
+  passwordHash String?
+  wallets      Wallet[]
+  orders       Order[]
+  auditLogs    AuditLog[] @relation("AuditActor")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Wallet {
+  id        String   @id @default(uuid()) @db.Uuid
+  address   String   @unique
+  chainId   Int
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Movie {
+  id          String       @id @default(uuid()) @db.Uuid
+  title       String
+  synopsis    String       @db.Text
+  durationMin Int
+  rating      String?
+  releaseDate DateTime?
+  status      MovieStatus  @default(DRAFT)
+  posterUrl   String?
+  trailerUrl  String?
+  genres      MovieGenre[]
+  assets      MovieAsset[]
+  showtimes   Showtime[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Genre {
+  id     String       @id @default(uuid()) @db.Uuid
+  name   String       @unique
+  movies MovieGenre[]
+}
+
+model MovieGenre {
+  movieId String @db.Uuid
+  genreId String @db.Uuid
+  movie   Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, genreId])
+}
+
+model MovieAsset {
+  id        String   @id @default(uuid()) @db.Uuid
+  movieId   String   @db.Uuid
+  url       String
+  kind      String
+  altText   String?
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Cinema {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  addressLine String
+  city        String
+  country     String
+  auditoriums Auditorium[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Auditorium {
+  id             String        @id @default(uuid()) @db.Uuid
+  cinemaId       String        @db.Uuid
+  seatTemplateId String?       @db.Uuid
+  name           String
+  cinema         Cinema        @relation(fields: [cinemaId], references: [id], onDelete: Cascade)
+  seatTemplate   SeatTemplate? @relation(fields: [seatTemplateId], references: [id])
+  showtimes      Showtime[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([cinemaId, name])
+}
+
+model SeatTemplate {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  version     Int          @default(1)
+  seats       Seat[]
+  auditoriums Auditorium[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Seat {
+  id             String       @id @default(uuid()) @db.Uuid
+  seatTemplateId String       @db.Uuid
+  code           String
+  rowLabel       String
+  seatNumber     Int
+  category       String
+  isAccessible   Boolean      @default(false)
+  posX           Int
+  posY           Int
+  seatTemplate   SeatTemplate @relation(fields: [seatTemplateId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@unique([seatTemplateId, code])
+  @@unique([seatTemplateId, posX, posY])
+}
+
+model Showtime {
+  id           String         @id @default(uuid()) @db.Uuid
+  movieId      String         @db.Uuid
+  auditoriumId String         @db.Uuid
+  startsAt     DateTime
+  endsAt       DateTime
+  status       ShowtimeStatus @default(DRAFT)
+  movie        Movie          @relation(fields: [movieId], references: [id])
+  auditorium   Auditorium     @relation(fields: [auditoriumId], references: [id])
+  seats        ShowtimeSeat[]
+  tickets      Ticket[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([auditoriumId, startsAt])
+}
+
+model ShowtimeSeat {
+  id         String           @id @default(uuid()) @db.Uuid
+  showtimeId String           @db.Uuid
+  seatCode   String
+  category   String
+  priceCents Int
+  currency   String           @default("USD")
+  status     SeatAvailability @default(AVAILABLE)
+  showtime   Showtime         @relation(fields: [showtimeId], references: [id], onDelete: Cascade)
+  seatHolds  SeatHold[]
+  ticket     Ticket?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([showtimeId, seatCode])
+}
+
+model SeatHold {
+  id             String       @id @default(uuid()) @db.Uuid
+  showtimeSeatId String       @db.Uuid
+  userId         String?      @db.Uuid
+  sessionId      String
+  expiresAt      DateTime
+  releasedAt     DateTime?
+  showtimeSeat   ShowtimeSeat @relation(fields: [showtimeSeatId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([sessionId, expiresAt])
+}
+
+model Order {
+  id            String      @id @default(uuid()) @db.Uuid
+  referenceCode String      @unique
+  userId        String?     @db.Uuid
+  status        OrderStatus @default(PENDING_PAYMENT)
+  subtotalCents Int
+  totalCents    Int
+  currency      String      @default("USD")
+  user          User?       @relation(fields: [userId], references: [id])
+  tickets       Ticket[]
+  payments      PaymentAttempt[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Ticket {
+  id             String       @id @default(uuid()) @db.Uuid
+  orderId        String       @db.Uuid
+  showtimeId     String       @db.Uuid
+  showtimeSeatId String       @unique @db.Uuid
+  bookingHash    String       @unique
+  status         TicketStatus @default(PAYMENT_PENDING)
+  order          Order        @relation(fields: [orderId], references: [id])
+  showtime       Showtime     @relation(fields: [showtimeId], references: [id])
+  showtimeSeat   ShowtimeSeat @relation(fields: [showtimeSeatId], references: [id])
+  nftMint        NftMint?
+  checkIns       CheckInAttempt[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PaymentAttempt {
+  id            String        @id @default(uuid()) @db.Uuid
+  orderId       String        @db.Uuid
+  provider      String
+  providerRef   String?       @unique
+  status        PaymentStatus @default(PENDING)
+  amountCents   Int
+  currency      String
+  transactionId String?
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model NftCollection {
+  id              String    @id @default(uuid()) @db.Uuid
+  chainId         Int
+  contractAddress String
+  name            String
+  mints           NftMint[]
+  createdAt       DateTime  @default(now())
+
+  @@unique([chainId, contractAddress])
+}
+
+model NftMint {
+  id           String        @id @default(uuid()) @db.Uuid
+  ticketId     String        @unique @db.Uuid
+  collectionId String        @db.Uuid
+  tokenId      String
+  metadataUri  String
+  mintTxHash   String        @unique
+  mintedAt     DateTime      @default(now())
+  ticket       Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  collection   NftCollection @relation(fields: [collectionId], references: [id])
+  metadata     TicketMetadataVersion[]
+
+  @@unique([collectionId, tokenId])
+}
+
+model TicketMetadataVersion {
+  id        String   @id @default(uuid()) @db.Uuid
+  nftMintId String   @db.Uuid
+  uri       String
+  contentId String?
+  version   Int
+  nftMint   NftMint  @relation(fields: [nftMintId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([nftMintId, version])
+}
+
+model BlockchainTransaction {
+  id        String          @id @default(uuid()) @db.Uuid
+  txHash    String          @unique
+  chainId   Int
+  type      TransactionType
+  ticketId  String?         @db.Uuid
+  status    String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model CheckInAttempt {
+  id         String   @id @default(uuid()) @db.Uuid
+  ticketId   String   @db.Uuid
+  scannerRef String?
+  accepted   Boolean
+  reason     String?
+  txHash     String?
+  checkedAt  DateTime @default(now())
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, checkedAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}

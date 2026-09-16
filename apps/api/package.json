@@ -1,0 +1,25 @@
+{
+  "name": "@moviepass/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run build && npm run start",
+    "build": "npm exec -- tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "npm exec -- tsc --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.12",
+    "@nestjs/core": "^11.0.12",
+    "@nestjs/platform-express": "^11.0.12",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "moviepass-nft",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NFT-based movie ticketing platform — Phase 1 foundation",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev --workspace=@moviepass/web\" \"npm run dev --workspace=@moviepass/api\"",
+    "dev:web": "npm run dev --workspace=@moviepass/web",
+    "dev:api": "npm run dev --workspace=@moviepass/api",
+    "build": "npm run build --workspace=@moviepass/api && npm run build --workspace=@moviepass/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "node --test tests/**/*.test.mjs && npm run typecheck",
+    "db:validate": "npm run validate --workspace=@moviepass/database"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}

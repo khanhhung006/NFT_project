@@ -1,0 +1,16 @@
+{
+  "name": "@moviepass/database",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "validate": "cross-env DATABASE_URL=postgresql://x:x@localhost:5432/x npm exec -- prisma validate --schema prisma/schema.prisma",
+    "generate": "npm exec -- prisma generate --schema prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.7.0"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "prisma": "^6.7.0"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@moviepass/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm exec -- next dev",
+    "build": "npm exec -- next build",
+    "start": "npm exec -- next start",
+    "typecheck": "npm exec -- tsc --noEmit"
+  },
+  "dependencies": {
+    "@moviepass/shared-types": "0.1.0",
+    "@moviepass/ui": "0.1.0",
+    "next": "^15.5.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "typescript": "^5.8.3"
+  }
+}

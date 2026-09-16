@@ -1,0 +1,22 @@
+# Dependencies and generated output
+node_modules/
+.next/
+dist/
+coverage/
+artifacts/
+cache/
+out/
+
+# Local configuration and secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Tooling
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+
+# Prisma generated migrations are created in a later database phase.
+packages/database/prisma/migrations/
